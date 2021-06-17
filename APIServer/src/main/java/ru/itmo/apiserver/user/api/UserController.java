@@ -1,4 +1,4 @@
-package ru.itmo.apiserver.user.api.v1;
+package ru.itmo.apiserver.user.api;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
