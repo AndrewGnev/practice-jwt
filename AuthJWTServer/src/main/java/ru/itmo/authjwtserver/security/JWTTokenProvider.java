@@ -4,17 +4,12 @@ import io.jsonwebtoken.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 import ru.itmo.authjwtserver.security.refresh.RefreshTokenService;
 import ru.itmo.authjwtserver.user.model.Role;
 
 import javax.annotation.PostConstruct;
-import javax.servlet.http.HttpServletRequest;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -26,8 +21,6 @@ public class JWTTokenProvider {
 
     @Value("${jwt.token.expired}")
     private long validityTime;
-
-    private UserDetailsService service;
 
     private RefreshTokenService refreshService;
 
@@ -57,44 +50,12 @@ public class JWTTokenProvider {
                 .compact();
     }
 
-    public Authentication getAuthentication(String token) {
-        UserDetails userDetails = this.service.loadUserByUsername(getUsername(token));
-        return new UsernamePasswordAuthenticationToken(userDetails, "", userDetails.getAuthorities());
-    }
-
-    public String getUsername(String token) {
-        return Jwts.parser().setSigningKey(secret).parseClaimsJws(token).getBody().getSubject();
-    }
-
-    public String resolveAccessToken(HttpServletRequest request) {
-        String bearerToken = request.getHeader("Authorization");
-        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
-            return bearerToken.substring(6).trim();
-        }
-        return null;
-    }
-
-    public boolean validateAccessToken(String token) {
-        try {
-            Jws<Claims> claims = Jwts.parser().setSigningKey(secret).parseClaimsJws(token);
-
-            return !claims.getBody().getExpiration().before(new Date());
-        } catch (JwtException | IllegalArgumentException e) {
-            throw new JWTAuthenticationException("JWT token is expired or invalid");
-        }
-    }
-
     public String createRefreshToken(String username) {
         return refreshService.generateRefreshToken(username).getToken();
     }
 
     private List<String> getRoleNames(Set<Role> roles) {
         return roles.stream().map(Enum::name).collect(Collectors.toList());
-    }
-
-    @Autowired
-    public void setService(UserDetailsService service) {
-        this.service = service;
     }
 
     @Autowired
