@@ -2,11 +2,8 @@ package ru.itmo.apiserver.security;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import org.apache.tomcat.util.http.parser.Authorization;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.Instant;
 import java.util.Collection;

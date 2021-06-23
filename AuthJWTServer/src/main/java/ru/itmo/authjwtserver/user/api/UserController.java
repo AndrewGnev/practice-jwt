@@ -10,11 +10,14 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 import ru.itmo.authjwtserver.security.JWTAuthenticationException;
 import ru.itmo.authjwtserver.security.JWTTokenProvider;
+import ru.itmo.authjwtserver.security.refresh.RefreshToken;
 import ru.itmo.authjwtserver.security.refresh.RefreshTokenService;
 import ru.itmo.authjwtserver.user.UserService;
 import ru.itmo.authjwtserver.user.model.Role;
 import ru.itmo.authjwtserver.user.model.User;
 
+import javax.annotation.security.RolesAllowed;
+import java.time.Instant;
 import java.util.*;
 
 @RestController
@@ -71,6 +74,7 @@ public class UserController {
         return ResponseEntity.ok(newUser.getUsername());
     }
 
+    @RolesAllowed("ROLE_ADMIN")
     @PostMapping("register/admin")
     public ResponseEntity<String> registerAdmin(@RequestBody AuthenticationRequestDto requestDto) {
         if (userService.getByUsername(requestDto.getUsername()) != null) {
@@ -87,14 +91,24 @@ public class UserController {
     }
 
     @PostMapping("refresh")
-    public ResponseEntity<String> refresh(@RequestParam UUID refreshToken) {
-        User user = refreshTokenService.getUser(refreshToken.toString());
+    public ResponseEntity<Map<String, String>> refresh(@RequestParam UUID refreshToken) {
+        RefreshToken token = refreshTokenService.getRefreshToken(refreshToken.toString());
 
-        if (user == null) {
+        if (token == null) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
-        return ResponseEntity.ok(jwtTokenProvider.createAccessToken(user.getUsername(), user.getRoles()));
+        if (token.getValidUntil().isBefore(Instant.now())) {
+            refreshTokenService.deleteRefreshToken(refreshToken.toString());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        User user = token.getUser();
+        Map<String, String> response = new HashMap<>();
+        response.put("accessToken", jwtTokenProvider.createAccessToken(user.getUsername(), user.getRoles()));
+        response.put("refreshToken", refreshTokenService.generateRefreshToken(user.getUsername()).getToken());
+
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("logout")

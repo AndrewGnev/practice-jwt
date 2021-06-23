@@ -1,23 +1,23 @@
 package ru.itmo.apiserver.security;
 
 
-import io.jsonwebtoken.*;
-import org.springframework.beans.factory.annotation.Autowired;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
-import ru.itmo.apiserver.user.model.Role;
 
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
-import java.util.*;
+import java.util.Base64;
+import java.util.Collection;
+import java.util.Date;
 import java.util.stream.Collectors;
 
 @Component
@@ -25,9 +25,6 @@ public class JWTTokenProvider {
 
     @Value("${jwt.token.secret}")
     private String secret;
-
-    @Value("${jwt.token.expired}")
-    private long validityTime;
 
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
@@ -46,10 +43,6 @@ public class JWTTokenProvider {
         return new UsernamePasswordAuthenticationToken(user, user, user.getAuthorities());
     }
 
-    public String getUsername(String token) {
-        return Jwts.parser().setSigningKey(secret).parseClaimsJws(token).getBody().getSubject();
-    }
-
     public String resolveAccessToken(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
         if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
@@ -66,10 +59,6 @@ public class JWTTokenProvider {
         } catch (JwtException | IllegalArgumentException e) {
             throw new JWTAuthenticationException("JWT token is expired or invalid");
         }
-    }
-
-    private List<String> getRoleNames(Set<Role> roles) {
-        return roles.stream().map(Enum::name).collect(Collectors.toList());
     }
 }
 

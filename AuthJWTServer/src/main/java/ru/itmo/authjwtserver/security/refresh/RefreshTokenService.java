@@ -4,7 +4,6 @@ package ru.itmo.authjwtserver.security.refresh;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.itmo.authjwtserver.user.UserService;
-import ru.itmo.authjwtserver.user.model.User;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -31,6 +30,7 @@ public class RefreshTokenService {
 
         refreshToken.setToken(UUID.randomUUID().toString());
         refreshToken.setCreatedDate(Instant.now());
+        refreshToken.setValidUntil(Instant.now().plusSeconds(3600));
 
         return refreshTokenRepository.save(refreshToken);
     }
@@ -39,9 +39,7 @@ public class RefreshTokenService {
         refreshTokenRepository.deleteByToken(token);
     }
 
-    public User getUser(String token) {
-        return refreshTokenRepository.findByToken(token)
-                .map(RefreshToken::getUser)
-                .orElse(null);
+    public RefreshToken getRefreshToken(String token) {
+        return refreshTokenRepository.findByToken(token).orElse(null);
     }
 }

@@ -1,12 +1,9 @@
 package ru.itmo.apiserver.security;
 
 import org.springframework.security.authentication.AuthenticationProvider;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Component;
-
-import java.util.ArrayList;
 
 @Component
 public class JWTAuthenticationProvider implements AuthenticationProvider {
@@ -23,8 +20,6 @@ public class JWTAuthenticationProvider implements AuthenticationProvider {
 
         if (authentication instanceof JWTUser) {
 
-            // use the credentials
-            // and authenticate against the third-party system
             if (jwtTokenProvider.validateAccessToken(((JWTUser) authentication).getToken())) {
                 return authentication;
             } else {

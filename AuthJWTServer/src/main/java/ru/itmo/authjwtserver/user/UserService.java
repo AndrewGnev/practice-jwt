@@ -5,9 +5,7 @@ import org.springframework.stereotype.Service;
 import ru.itmo.authjwtserver.user.model.Role;
 import ru.itmo.authjwtserver.user.model.User;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @Service
 public class UserService {
