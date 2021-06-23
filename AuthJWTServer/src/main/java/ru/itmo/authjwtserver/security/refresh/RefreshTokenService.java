@@ -3,7 +3,8 @@ package ru.itmo.authjwtserver.security.refresh;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.itmo.authjwtserver.security.JWTAuthenticationException;
+import ru.itmo.authjwtserver.user.UserService;
+import ru.itmo.authjwtserver.user.model.User;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -12,26 +13,35 @@ import java.util.UUID;
 @Transactional
 public class RefreshTokenService {
 
+    private final UserService userService;
     private final RefreshTokenRepository refreshTokenRepository;
 
-    public RefreshTokenService(RefreshTokenRepository repository) {
+    public RefreshTokenService(UserService userService, RefreshTokenRepository repository) {
+        this.userService = userService;
         this.refreshTokenRepository = repository;
     }
 
-    RefreshToken generateRefreshToken() {
-        RefreshToken refreshToken = new RefreshToken();
+    public RefreshToken generateRefreshToken(String username) {
+        RefreshToken refreshToken = refreshTokenRepository.findByUser_Username(username)
+                .orElseGet(() -> {
+                    RefreshToken token = new RefreshToken();
+                    token.setUser(userService.getByUsername(username));
+                    return token;
+                });
+
         refreshToken.setToken(UUID.randomUUID().toString());
         refreshToken.setCreatedDate(Instant.now());
 
         return refreshTokenRepository.save(refreshToken);
     }
 
-    void validateRefreshToken(String token) {
-        refreshTokenRepository.findByToken(token)
-                .orElseThrow(() -> new JWTAuthenticationException("Invalid refresh Token"));
-    }
-
     public void deleteRefreshToken(String token) {
         refreshTokenRepository.deleteByToken(token);
+    }
+
+    public User getUser(String token) {
+        return refreshTokenRepository.findByToken(token)
+                .map(RefreshToken::getUser)
+                .orElse(null);
     }
 }

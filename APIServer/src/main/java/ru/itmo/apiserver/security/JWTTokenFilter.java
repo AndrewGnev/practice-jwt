@@ -1,5 +1,5 @@
-package ru.itmo.authjwtserver.security;
-/*
+package ru.itmo.apiserver.security;
+
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.GenericFilterBean;
@@ -31,4 +31,5 @@ public class JWTTokenFilter extends GenericFilterBean {
         }
         filterChain.doFilter(req, res);
     }
-}*/
+}
+

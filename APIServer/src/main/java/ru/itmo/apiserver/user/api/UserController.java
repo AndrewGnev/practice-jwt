@@ -2,29 +2,26 @@ package ru.itmo.apiserver.user.api;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
-import ru.itmo.apiserver.user.UserRole;
+
+import javax.annotation.security.RolesAllowed;
 
 @RestController
 public class UserController {
 
     @GetMapping("/endpoint0")
-    public HttpStatus endpoint0(@RequestHeader("X-ROLE") UserRole role) {
+    public HttpStatus endpoint0() {
         return HttpStatus.OK;
     }
 
     @GetMapping("/endpoint1")
-    public HttpStatus endpoint1(@RequestHeader("X-ROLE") UserRole role) {
-        if(UserRole.ADMIN == role) {
-            return HttpStatus.OK;
-        } else {
-            return HttpStatus.FORBIDDEN;
-        }
+    @RolesAllowed("ROLE_ADMIN")
+    public HttpStatus endpoint1() {
+        return HttpStatus.OK;
     }
 
     @GetMapping("/endpoint2")
-    public HttpStatus endpoint2(@RequestHeader("X-ROLE") UserRole role) {
+    public HttpStatus endpoint2() {
         return HttpStatus.FORBIDDEN;
     }
 }

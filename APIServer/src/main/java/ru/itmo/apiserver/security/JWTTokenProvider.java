@@ -1,4 +1,5 @@
-package ru.itmo.authjwtserver.security;
+package ru.itmo.apiserver.security;
+
 
 import io.jsonwebtoken.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -6,12 +7,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
-import ru.itmo.authjwtserver.security.refresh.RefreshTokenService;
-import ru.itmo.authjwtserver.user.model.Role;
+import ru.itmo.apiserver.user.model.Role;
 
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
@@ -27,10 +29,6 @@ public class JWTTokenProvider {
     @Value("${jwt.token.expired}")
     private long validityTime;
 
-    private UserDetailsService service;
-
-    private RefreshTokenService refreshService;
-
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -39,27 +37,13 @@ public class JWTTokenProvider {
     @PostConstruct
     protected void init() { secret = Base64.getEncoder().encodeToString(secret.getBytes()); }
 
-    public String createAccessToken(String username, Set<Role> roles) {
-        Objects.requireNonNull(username);
-        Objects.requireNonNull(roles);
-
-        Claims claims = Jwts.claims().setSubject(username);
-        claims.put("roles", getRoleNames(roles));
-
-        Date now = new Date();
-        Date validity = new Date(now.getTime() + validityTime);
-
-        return Jwts.builder()
-                .setClaims(claims)
-                .setIssuedAt(now)
-                .setExpiration(validity)
-                .signWith(SignatureAlgorithm.HS256, secret)
-                .compact();
-    }
-
     public Authentication getAuthentication(String token) {
-        UserDetails userDetails = this.service.loadUserByUsername(getUsername(token));
-        return new UsernamePasswordAuthenticationToken(userDetails, "", userDetails.getAuthorities());
+        Claims claims = Jwts.parser().setSigningKey(secret).parseClaimsJws(token).getBody();
+
+        JWTUser user = new JWTUser(token, claims.getIssuedAt().toInstant(), claims.getSubject(),
+                ((Collection<String>) claims.get("roles")).stream()
+                .map(SimpleGrantedAuthority::new).collect(Collectors.toList()));
+        return new UsernamePasswordAuthenticationToken(user, user, user.getAuthorities());
     }
 
     public String getUsername(String token) {
@@ -84,21 +68,8 @@ public class JWTTokenProvider {
         }
     }
 
-    public String createRefreshToken(String username) {
-        return refreshService.generateRefreshToken(username).getToken();
-    }
-
     private List<String> getRoleNames(Set<Role> roles) {
         return roles.stream().map(Enum::name).collect(Collectors.toList());
     }
-
-    @Autowired
-    public void setService(UserDetailsService service) {
-        this.service = service;
-    }
-
-    @Autowired
-    public void setRefreshService(RefreshTokenService refreshService) {
-        this.refreshService = refreshService;
-    }
 }
+

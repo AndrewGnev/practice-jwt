@@ -1,17 +1,19 @@
 package ru.itmo.authjwtserver.security.refresh;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
+import ru.itmo.authjwtserver.user.model.User;
+
+import javax.persistence.*;
 import java.time.Instant;
-import java.util.Date;
 
 @Entity
 public class RefreshToken {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(unique = true)
+    private User user;
     private String token;
     private Instant createdDate;
 
@@ -36,5 +38,13 @@ public class RefreshToken {
 
     public void setCreatedDate(Instant createdDate) {
         this.createdDate = createdDate;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
     }
 }

@@ -20,9 +20,7 @@ public class UserService {
     }
 
     public User registerUser(User user) {
-        Set<Role> roles = new HashSet<Role>();
-        roles.add(Role.USER);
-        user.setRoles(roles);
+        user.getRoles().add(Role.ROLE_USER);
 
         user.setPassword(passwordEncoder.encode(user.getPassword()));
 
@@ -40,8 +38,4 @@ public class UserService {
     public User getById(Long id) {
         return repository.findById(id).orElse(null);
     }
-
-
-
-
 }
