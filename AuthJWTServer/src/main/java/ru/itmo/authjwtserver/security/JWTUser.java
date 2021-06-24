@@ -1,6 +1,5 @@
 package ru.itmo.authjwtserver.security;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 
@@ -8,14 +7,12 @@ import java.time.Instant;
 import java.util.Collection;
 
 public class JWTUser extends AbstractAuthenticationToken {
-    private final String token;
     private final Instant createdAt;
     private final String username;
     private final Collection<GrantedAuthority> authorities;
 
-    public JWTUser(String token, Instant createdAt, String username, Collection<GrantedAuthority> authorities) {
+    public JWTUser(Instant createdAt, String username, Collection<GrantedAuthority> authorities) {
         super(authorities);
-        this.token = token;
         this.createdAt = createdAt;
         this.username = username;
         this.authorities = authorities;
@@ -32,12 +29,12 @@ public class JWTUser extends AbstractAuthenticationToken {
     }
 
     @Override
-    public Object getDetails() {
+    public Instant getDetails() {
         return createdAt;
     }
 
     @Override
-    public Object getPrincipal() {
+    public String getPrincipal() {
         return username;
     }
 
@@ -48,34 +45,11 @@ public class JWTUser extends AbstractAuthenticationToken {
 
     @Override
     public void setAuthenticated(boolean isAuthenticated) throws IllegalArgumentException {
-
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public String getName() {
         return username;
-    }
-
-    public String getToken() {
-        return token;
-    }
-
-    @JsonIgnore
-    public boolean isAccountNonExpired() {
-        return true;
-    }
-
-    @JsonIgnore
-    public boolean isAccountNonLocked() {
-        return true;
-    }
-
-    @JsonIgnore
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
-
-    public boolean isEnabled() {
-        return true;
     }
 }

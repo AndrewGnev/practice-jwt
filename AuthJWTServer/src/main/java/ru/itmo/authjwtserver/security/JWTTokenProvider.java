@@ -64,7 +64,7 @@ public class JWTTokenProvider {
     public Authentication getAuthentication(String token) {
         Claims claims = Jwts.parser().setSigningKey(secret).parseClaimsJws(token).getBody();
 
-        return new JWTUser(token, claims.getIssuedAt().toInstant(), claims.getSubject(),
+        return new JWTUser(claims.getIssuedAt().toInstant(), claims.getSubject(),
                 ((Collection<String>) claims.get("roles")).stream()
                         .map(SimpleGrantedAuthority::new).collect(Collectors.toList()));
     }

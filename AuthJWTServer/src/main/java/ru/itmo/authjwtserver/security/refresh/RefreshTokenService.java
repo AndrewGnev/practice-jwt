@@ -35,8 +35,8 @@ public class RefreshTokenService {
         return refreshTokenRepository.save(refreshToken);
     }
 
-    public void deleteRefreshToken(String token) {
-        refreshTokenRepository.deleteByToken(token);
+    public void deleteRefreshToken(String username) {
+        refreshTokenRepository.deleteByUser_Username(username);
     }
 
     public RefreshToken getRefreshToken(String token) {

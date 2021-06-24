@@ -2,10 +2,12 @@ package ru.itmo.authjwtserver.user.api;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import ru.itmo.authjwtserver.security.JWTAuthenticationException;
 import ru.itmo.authjwtserver.security.JWTTokenProvider;
@@ -17,7 +19,9 @@ import ru.itmo.authjwtserver.user.model.User;
 
 import javax.annotation.security.RolesAllowed;
 import java.time.Instant;
-import java.util.*;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth/")
@@ -35,7 +39,7 @@ public class UserController {
     }
 
     @PostMapping("login")
-    public ResponseEntity<Map<String, String>> login(@RequestBody AuthenticationRequestDto requestDto) {
+    public ResponseEntity<AuthenticationResponseDto> login(@RequestBody AuthenticationRequestDto requestDto) {
         try {
             String username = requestDto.getUsername();
             authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, requestDto.getPassword()));
@@ -45,12 +49,7 @@ public class UserController {
             String accessToken = jwtTokenProvider.createAccessToken(username, user.getRoles());
             String refreshToken = jwtTokenProvider.createRefreshToken(username);
 
-            Map<String, String> response = new HashMap<>();
-            response.put("username", username);
-            response.put("accessToken", accessToken);
-            response.put("refreshToken", refreshToken);
-
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(new AuthenticationResponseDto(accessToken, refreshToken));
         } catch (AuthenticationException e) {
             throw new BadCredentialsException(e.getMessage());
         }
@@ -74,7 +73,7 @@ public class UserController {
     @PostMapping("register/admin")
     public ResponseEntity<String> registerAdmin(@RequestBody AuthenticationRequestDto requestDto) {
         if (userService.getByUsername(requestDto.getUsername()).isPresent()) {
-            throw new JWTAuthenticationException("username is busy");
+            return ResponseEntity.badRequest().body("username is busy");
         }
 
         Set<Role> newUserRoles = new HashSet<>();
@@ -87,7 +86,7 @@ public class UserController {
     }
 
     @PostMapping("refresh")
-    public ResponseEntity<Map<String, String>> refresh(@RequestParam UUID refreshToken) {
+    public ResponseEntity<AuthenticationResponseDto> refresh(@RequestParam UUID refreshToken) {
         RefreshToken token = refreshTokenService.getRefreshToken(refreshToken.toString());
 
         if (token == null) {
@@ -95,20 +94,20 @@ public class UserController {
         }
 
         if (token.getValidUntil().isBefore(Instant.now())) {
-            refreshTokenService.deleteRefreshToken(refreshToken.toString());
+            refreshTokenService.deleteRefreshToken(token.getUser().getUsername());
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
         User user = token.getUser();
-        Map<String, String> response = new HashMap<>();
-        response.put("accessToken", jwtTokenProvider.createAccessToken(user.getUsername(), user.getRoles()));
-        response.put("refreshToken", refreshTokenService.generateRefreshToken(user.getUsername()).getToken());
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(new AuthenticationResponseDto(
+                jwtTokenProvider.createAccessToken(user.getUsername(), user.getRoles()),
+                refreshTokenService.generateRefreshToken(user.getUsername()).getToken()
+        ));
     }
 
     @PostMapping("logout")
-    public void logout(@RequestParam String refreshToken) {
-        refreshTokenService.deleteRefreshToken(refreshToken);
+    @PreAuthorize("isAuthenticated()")
+    public void logout(@AuthenticationPrincipal String username) {
+        refreshTokenService.deleteRefreshToken(username);
     }
 }
