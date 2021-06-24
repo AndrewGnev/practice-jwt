@@ -38,13 +38,6 @@ public class ClientApplication implements ApplicationRunner {
 
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
         while (working) {
-            String username = null;
-            String password = null;
-            AuthenticationRequestDto authReq = null;
-            ResponseEntity<String> registerResp = null;
-            ResponseEntity<AuthenticationResponseDto> loginResp = null;
-            ResponseEntity<AuthenticationResponseDto> refreshResp = null;
-
             System.out.print("> ");
             System.out.flush();
 
@@ -55,70 +48,82 @@ public class ClientApplication implements ApplicationRunner {
                 continue;
             }
 
-            String command = line.trim();
-            switch (command) {
-                case "register":
-                    Role role = readRole(reader);
-                    if (role == null) {
+            try {
+                String command = line.trim();
+                switch (command) {
+                    case "register":
+                        Role role = readRole(reader);
+                        if (role == null) {
+                            break;
+                        }
+
+                        switch (role) {
+                            case USER:
+                                registerUser(reader);
+                                break;
+
+                            case ADMIN:
+                                registerAdmin(reader);
+                                break;
+                        }
                         break;
-                    }
 
-                    switch (role) {
-                        case USER:
-                            registerUser(reader);
-                            break;
+                    case "login":
+                        login(reader);
+                        break;
 
-                        case ADMIN:
-                            registerAdmin(reader);
-                            break;
-                    }
-                    break;
+                    case "logout":
+                        logout();
+                        break;
 
-                case "login":
-                    login(reader);
-                    break;
-
-                case "logout":
-                    logout();
-                    break;
-
-                case "everybodyEndpoint":
-                    System.out.println(requestWithToken(HttpMethod.GET, targetServerUrl + "api/endpoint0", null, HttpStatus.class));
-                    break;
-
-                case "adminsOnlyEndpoint":
-                    try {
-                        System.out.println(requestWithToken(HttpMethod.GET, targetServerUrl + "api/endpoint1", null, HttpStatus.class));
-                    } catch(HttpStatusCodeException e) {
-                        if (e.getStatusCode() == HttpStatus.FORBIDDEN) {
-                            System.out.println("You must have admin role to have access to this endpoint");
+                    case "everybodyEndpoint":
+                        if (requestWithToken(HttpMethod.GET, targetServerUrl + "api/endpoint0", null, HttpStatus.class) != null) {
+                            System.out.println("Success");
                         }
-                    }
-                    break;
 
-                case "nobodyEndpoint":
-                    try {
-                        System.out.println(requestWithToken(HttpMethod.GET, targetServerUrl + "api/endpoint2", null, HttpStatus.class));
-                    } catch(HttpStatusCodeException e) {
-                        if (e.getStatusCode() == HttpStatus.FORBIDDEN) {
-                            System.out.println("Nobody have access to this endpoint");
+                        break;
+
+                    case "adminsOnlyEndpoint":
+                        try {
+                             if (requestWithToken(HttpMethod.GET, targetServerUrl + "api/endpoint1", null, HttpStatus.class) != null) {
+                                 System.out.println("Success");
+                             }
+                        } catch (HttpStatusCodeException e) {
+                            if (e.getStatusCode() == HttpStatus.FORBIDDEN) {
+                                System.out.println("You must have admin role to have access to this endpoint");
+                            }
                         }
-                    }
-                    break;
+                        break;
 
-                case "":
-                    break;
+                    case "nobodyEndpoint":
+                        try {
+                            if (requestWithToken(HttpMethod.GET, targetServerUrl + "api/endpoint2", null, HttpStatus.class) != null) {
+                                System.out.println("Success");
+                            }
+                        } catch (HttpStatusCodeException e) {
+                            if (e.getStatusCode() == HttpStatus.FORBIDDEN) {
+                                System.out.println("Nobody have access to this endpoint");
+                            }
+                        }
+                        break;
 
-                case "help":
-                    System.out.println("supported commands:\nregister\nlogin\neverybodyEndpoint\nadminsOnlyEndpoint\nnobodyEndpoint");
-                    break;
+                    case "":
+                        break;
 
-                case "quit":
-                    working = false;
-                    break;
+                    case "help":
+                        System.out.println("supported commands:\nregister\nlogin\nlogout\neverybodyEndpoint\nadminsOnlyEndpoint\nnobodyEndpoint\nquit");
+                        break;
 
-                default:
-                    System.out.printf("Unknown command \"%s\"\n", command);
+                    case "quit":
+                        working = false;
+                        break;
+
+                    default:
+                        System.out.printf("Unknown command \"%s\"\n", command);
+                }
+            } catch (Exception e) {
+                System.err.println("An unknown error occurred: ");
+                e.printStackTrace();
             }
         }
 
@@ -261,13 +266,23 @@ public class ClientApplication implements ApplicationRunner {
         }
 
         try {
-            requestWithToken(HttpMethod.POST, authServerUrl + "api/auth/register/admin", authReq, String.class);
-            System.out.println("Registered successfully");
+            ResponseEntity<String> resp = requestWithToken(HttpMethod.POST, authServerUrl + "api/auth/register/admin", authReq, String.class);
+
+            if (resp != null && authReq.getUsername().equals(resp.getBody())) {
+                System.out.println("Registered successfully");
+            }
         } catch (HttpStatusCodeException e) {
-            if (e.getStatusCode() == HttpStatus.FORBIDDEN) {
-                System.out.println("You don't have permissions");
-            } else {
-                System.out.println("Username is busy");
+            switch (e.getStatusCode()) {
+                case FORBIDDEN:
+                    System.out.println("You don't have permissions");
+                    break;
+
+                case CONFLICT:
+                    System.out.println("Username is busy");
+                    break;
+
+                default:
+                    throw e;
             }
         }
     }
@@ -303,8 +318,6 @@ public class ClientApplication implements ApplicationRunner {
         }
 
         HttpHeaders headers = new HttpHeaders();
-//                            headers.setContentType(MediaType.APPLICATION_JSON);
-//                            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.setBearerAuth(token.getAccessToken());
         HttpEntity<U> entity = new HttpEntity<>(requestBody, headers);
 

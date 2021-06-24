@@ -1,6 +1,7 @@
 package ru.itmo.authjwtserver.security.refresh;
 
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.itmo.authjwtserver.user.UserService;
@@ -14,6 +15,9 @@ public class RefreshTokenService {
 
     private final UserService userService;
     private final RefreshTokenRepository refreshTokenRepository;
+
+    @Value("${refresh.token.expired}")
+    private long validityTime;
 
     public RefreshTokenService(UserService userService, RefreshTokenRepository repository) {
         this.userService = userService;
@@ -30,7 +34,7 @@ public class RefreshTokenService {
 
         refreshToken.setToken(UUID.randomUUID().toString());
         refreshToken.setCreatedDate(Instant.now());
-        refreshToken.setValidUntil(Instant.now().plusSeconds(3600));
+        refreshToken.setValidUntil(Instant.now().plusSeconds(validityTime));
 
         return refreshTokenRepository.save(refreshToken);
     }

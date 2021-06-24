@@ -13,6 +13,7 @@ import ru.itmo.authjwtserver.user.model.Role;
 
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -42,13 +43,13 @@ public class JWTTokenProvider {
         Claims claims = Jwts.claims().setSubject(username);
         claims.put("roles", getRoleNames(roles));
 
-        Date now = new Date();
-        Date validity = new Date(now.getTime() + validityTime);
+        Instant now = Instant.now();
+        Instant validity = now.plusSeconds(validityTime);
 
         return Jwts.builder()
                 .setClaims(claims)
-                .setIssuedAt(now)
-                .setExpiration(validity)
+                .setIssuedAt(Date.from(now))
+                .setExpiration(Date.from(validity))
                 .signWith(SignatureAlgorithm.HS256, secret)
                 .compact();
     }

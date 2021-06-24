@@ -9,6 +9,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.server.ResponseStatusException;
 import ru.itmo.authjwtserver.security.JWTAuthenticationException;
 import ru.itmo.authjwtserver.security.JWTTokenProvider;
 import ru.itmo.authjwtserver.security.refresh.RefreshToken;
@@ -73,7 +75,7 @@ public class UserController {
     @PostMapping("register/admin")
     public ResponseEntity<String> registerAdmin(@RequestBody AuthenticationRequestDto requestDto) {
         if (userService.getByUsername(requestDto.getUsername()).isPresent()) {
-            return ResponseEntity.badRequest().body("username is busy");
+            throw new ResponseStatusException(HttpStatus.CONFLICT);
         }
 
         Set<Role> newUserRoles = new HashSet<>();
