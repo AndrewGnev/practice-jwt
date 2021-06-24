@@ -1,63 +1,80 @@
 package ru.itmo.authjwtserver.security;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.Instant;
 import java.util.Collection;
 
-public class JWTUser implements UserDetails {
-    private final Long id;
+public class JWTUser extends AbstractAuthenticationToken {
+    private final String token;
+    private final Instant createdAt;
     private final String username;
-    private final String password;
-    private final Collection<? extends GrantedAuthority> authorities;
+    private final Collection<GrantedAuthority> authorities;
 
-    public JWTUser(Long id, String username, String password, Collection<? extends GrantedAuthority> authorities) {
-        this.id = id;
+    public JWTUser(String token, Instant createdAt, String username, Collection<GrantedAuthority> authorities) {
+        super(authorities);
+        this.token = token;
+        this.createdAt = createdAt;
         this.username = username;
-        this.password = password;
         this.authorities = authorities;
     }
 
-    public Long getId() {
-        return id;
+    @Override
+    public Collection<GrantedAuthority> getAuthorities() {
+        return this.authorities;
     }
 
     @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return authorities;
-    }
-
-    @JsonIgnore
-    @Override
-    public String getPassword() {
-        return password;
+    public Object getCredentials() {
+        return null;
     }
 
     @Override
-    public String getUsername() {
+    public Object getDetails() {
+        return createdAt;
+    }
+
+    @Override
+    public Object getPrincipal() {
         return username;
     }
 
-    @JsonIgnore
     @Override
+    public boolean isAuthenticated() {
+        return false;
+    }
+
+    @Override
+    public void setAuthenticated(boolean isAuthenticated) throws IllegalArgumentException {
+
+    }
+
+    @Override
+    public String getName() {
+        return username;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    @JsonIgnore
     public boolean isAccountNonExpired() {
         return true;
     }
 
     @JsonIgnore
-    @Override
     public boolean isAccountNonLocked() {
         return true;
     }
 
     @JsonIgnore
-    @Override
     public boolean isCredentialsNonExpired() {
         return true;
     }
 
-    @Override
     public boolean isEnabled() {
         return true;
     }

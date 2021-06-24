@@ -1,14 +1,18 @@
 package ru.itmo.authjwtserver.user;
 
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import ru.itmo.authjwtserver.user.model.Role;
 import ru.itmo.authjwtserver.user.model.User;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
-public class UserService {
+public class UserService implements UserDetailsService {
+
     private final UserRepository repository;
     private final BCryptPasswordEncoder passwordEncoder;
 
@@ -29,11 +33,21 @@ public class UserService {
         return repository.findAll();
     }
 
-    public User getByUsername(String username) {
+    public User getByUsernameStrict(String username) {
+        return repository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("user " + username + " not found"));
+    }
+
+    public Optional<User> getByUsername(String username) {
         return repository.findByUsername(username);
     }
 
     public User getById(Long id) {
         return repository.findById(id).orElse(null);
+    }
+
+    @Override
+    public User loadUserByUsername(String username) throws UsernameNotFoundException {
+        return getByUsernameStrict(username);
     }
 }

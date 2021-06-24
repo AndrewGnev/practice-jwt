@@ -1,4 +1,4 @@
-package ru.itmo.apiserver.security;
+package ru.itmo.authjwtserver.security;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -23,6 +23,7 @@ public class JWTTokenFilter extends GenericFilterBean {
     public void doFilter(ServletRequest req, ServletResponse res, FilterChain filterChain)
             throws IOException, ServletException {
         String token = jwtTokenProvider.resolveAccessToken((HttpServletRequest) req);
+
         if (token != null && jwtTokenProvider.validateAccessToken(token)) {
             Authentication auth = jwtTokenProvider.getAuthentication(token);
 
@@ -30,7 +31,6 @@ public class JWTTokenFilter extends GenericFilterBean {
                 SecurityContextHolder.getContext().setAuthentication(auth);
             }
         }
-
         filterChain.doFilter(req, res);
     }
 }

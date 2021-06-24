@@ -6,7 +6,6 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 import ru.itmo.authjwtserver.security.JWTAuthenticationException;
 import ru.itmo.authjwtserver.security.JWTTokenProvider;
@@ -40,11 +39,8 @@ public class UserController {
         try {
             String username = requestDto.getUsername();
             authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, requestDto.getPassword()));
-            User user = userService.getByUsername(username);
 
-            if (user == null) {
-                throw new UsernameNotFoundException("User with username: " + username + " not found");
-            }
+            User user = userService.getByUsernameStrict(username);
 
             String accessToken = jwtTokenProvider.createAccessToken(username, user.getRoles());
             String refreshToken = jwtTokenProvider.createRefreshToken(username);
@@ -62,7 +58,7 @@ public class UserController {
 
     @PostMapping("register/user")
     public ResponseEntity<String> registerUser(@RequestBody AuthenticationRequestDto requestDto) {
-        if (userService.getByUsername(requestDto.getUsername()) != null) {
+        if (userService.getByUsername(requestDto.getUsername()).isPresent()) {
             throw new JWTAuthenticationException("username is busy");
         }
 
@@ -74,10 +70,10 @@ public class UserController {
         return ResponseEntity.ok(newUser.getUsername());
     }
 
-    @RolesAllowed("ROLE_ADMIN")
+    @RolesAllowed("ADMIN")
     @PostMapping("register/admin")
     public ResponseEntity<String> registerAdmin(@RequestBody AuthenticationRequestDto requestDto) {
-        if (userService.getByUsername(requestDto.getUsername()) != null) {
+        if (userService.getByUsername(requestDto.getUsername()).isPresent()) {
             throw new JWTAuthenticationException("username is busy");
         }
 

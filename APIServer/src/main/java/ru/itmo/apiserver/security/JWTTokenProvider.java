@@ -7,7 +7,6 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -37,10 +36,9 @@ public class JWTTokenProvider {
     public Authentication getAuthentication(String token) {
         Claims claims = Jwts.parser().setSigningKey(secret).parseClaimsJws(token).getBody();
 
-        JWTUser user = new JWTUser(token, claims.getIssuedAt().toInstant(), claims.getSubject(),
+        return new JWTUser(token, claims.getIssuedAt().toInstant(), claims.getSubject(),
                 ((Collection<String>) claims.get("roles")).stream()
-                .map(SimpleGrantedAuthority::new).collect(Collectors.toList()));
-        return new UsernamePasswordAuthenticationToken(user, user, user.getAuthorities());
+                        .map(SimpleGrantedAuthority::new).collect(Collectors.toList()));
     }
 
     public String resolveAccessToken(HttpServletRequest request) {

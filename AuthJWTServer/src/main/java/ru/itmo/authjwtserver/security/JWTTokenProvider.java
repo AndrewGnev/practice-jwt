@@ -1,17 +1,18 @@
 package ru.itmo.authjwtserver.security;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 import ru.itmo.authjwtserver.security.refresh.RefreshTokenService;
 import ru.itmo.authjwtserver.user.model.Role;
 
 import javax.annotation.PostConstruct;
+import javax.servlet.http.HttpServletRequest;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -58,6 +59,34 @@ public class JWTTokenProvider {
 
     private List<String> getRoleNames(Set<Role> roles) {
         return roles.stream().map(Enum::name).collect(Collectors.toList());
+    }
+
+    public Authentication getAuthentication(String token) {
+        Claims claims = Jwts.parser().setSigningKey(secret).parseClaimsJws(token).getBody();
+
+        return new JWTUser(token, claims.getIssuedAt().toInstant(), claims.getSubject(),
+                ((Collection<String>) claims.get("roles")).stream()
+                        .map(SimpleGrantedAuthority::new).collect(Collectors.toList()));
+    }
+
+    public String resolveAccessToken(HttpServletRequest request) {
+        String bearerToken = request.getHeader("Authorization");
+
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(6).trim();
+        }
+
+        return null;
+    }
+
+    public boolean validateAccessToken(String token) {
+        try {
+            Jws<Claims> claims = Jwts.parser().setSigningKey(secret).parseClaimsJws(token);
+
+            return !claims.getBody().getExpiration().before(new Date());
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new JWTAuthenticationException("JWT token is expired or invalid");
+        }
     }
 
     @Autowired

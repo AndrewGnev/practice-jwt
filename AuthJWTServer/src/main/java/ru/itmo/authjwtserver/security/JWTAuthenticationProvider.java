@@ -1,4 +1,4 @@
-package ru.itmo.apiserver.security;
+package ru.itmo.authjwtserver.security;
 
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.core.Authentication;

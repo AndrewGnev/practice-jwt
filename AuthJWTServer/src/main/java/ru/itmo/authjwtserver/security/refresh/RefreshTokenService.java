@@ -24,7 +24,7 @@ public class RefreshTokenService {
         RefreshToken refreshToken = refreshTokenRepository.findByUser_Username(username)
                 .orElseGet(() -> {
                     RefreshToken token = new RefreshToken();
-                    token.setUser(userService.getByUsername(username));
+                    token.setUser(userService.getByUsernameStrict(username));
                     return token;
                 });
 
